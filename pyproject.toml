@@ -7,7 +7,10 @@ authors = [
     { name = "Pedro A. N. Tronco", email = "pedro_augusto_nalin_tronco@outlook.com.br" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.14.3",
+    "pyserial>=3.5",
+]
 
 [project.scripts]
 trabalho-g2 = "trabalho_g2:main"
