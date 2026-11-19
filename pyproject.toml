@@ -9,7 +9,10 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.14.3",
+    "pydantic-settings>=2.16.3",
     "pyserial>=3.5",
+    "tornado>=6.6.1",
+    "typing-extensions>=4.16.0",
 ]
 
 [project.scripts]

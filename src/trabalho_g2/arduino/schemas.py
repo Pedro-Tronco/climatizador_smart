@@ -28,10 +28,6 @@ class SensorReading(BaseModel):
 
         return data
 
-    @property
-    def isolated(self) -> bool:
-        return self.sensor1 and self.sensor2
-
 
 class LedColors(StrEnum):
     RED = "LED,RED\n"

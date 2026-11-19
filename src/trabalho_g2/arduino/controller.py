@@ -33,31 +33,30 @@ class ArduinoController:
         self._reader_thread = None
         self._write_lock = threading.Lock()
 
-        self._last_isolated: bool | None = None
+        self._last_isolated: SensorReading | None = None
 
 
-    def set_led_color(self, color: LedColors):
+    def set_led_color(self, color: LedColors) -> None:
         with self._write_lock:
             self.serial.write(color.value.encode("ascii"))
 
 
-    def _process_sensor_data(self, line, toggle_callback):
+    def _process_sensor_data(self, line, toggle_callback) -> None:
         try:
             reading = SensorReading.model_validate(line)
         except ValidationError:
             return
 
-        if reading.isolated != self._last_isolated:
+        if reading != self._last_isolated:
 
-            self._last_isolated = reading.isolated
-
-            toggle_callback(reading.isolated)
+            self._last_isolated = reading
+            toggle_callback(reading)
             
 
     def _read_loop(
         self,
-        toggle_callback: Callable[[bool], None]
-    ):
+        toggle_callback: Callable[[SensorReading], None]
+    ) -> None:
 
         while not self._stop_event.is_set():
 
@@ -84,7 +83,7 @@ class ArduinoController:
 
     def start(
         self,
-        toggle_callback: Callable[[bool], None]
+        toggle_callback: Callable[[SensorReading], None]
     ):
 
         if self._reader_thread and self._reader_thread.is_alive():

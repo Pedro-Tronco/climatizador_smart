@@ -1,80 +1,21 @@
-# from RPLCD.gpio import CharLCD
-# import RPi.GPIO as GPIO
-# import time
-
-# def main() -> None:
-#     lcd = CharLCD(
-#         numbering_mode=GPIO.BCM,
-#         cols=16,
-#         rows=2,
-#         pin_rs=26,
-#         pin_e=19,
-#         pins_data=[13, 6, 5, 11]
-#     )
-
-#     try:
-#         # Limpa a tela antes de escrever
-#         lcd.clear()
-        
-#         # Escreve na primeira linha
-#         lcd.write_string('Raspberry Pi')
-        
-#         # Pula para a segunda linha (linha 1, coluna 0)
-#         lcd.cursor_pos = (1, 0)
-#         lcd.write_string('Teste LCD 1602A!')
-        
-#         print("Texto enviado! Gire o potenciometro se nao aparecer nada.")
-        
-#         # Mantem o texto na tela por 15 segundos
-#         time.sleep(15)
-
-#     finally:
-#         # Limpa a tela e libera os pinos ao finalizar
-#         lcd.clear()
-#         lcd.close(clear=True)
-#         print("Teste finalizado.")
-        
-from .arduino.controller import ArduinoController
+from .settings import get_settings
+from .registry import get_services
 from .arduino.schemas import LedColors
-import time
+from tornado.ioloop import IOLoop
 
-class DetectionStatus:
-
-    def __init__(self, arduino: ArduinoController):
-        self.active = False
-        self._arduino = arduino
-
-    def toggle(self, blocked: bool):
-        self.active = blocked
-        
-        if self.active:
-            self._arduino.set_led_color(LedColors.GREEN)
-        
-        else:
-            self._arduino.set_led_color(LedColors.RED)
-            
 
 def main() -> None:
-    arduino = ArduinoController(port='COM8')
-    status = DetectionStatus(arduino=arduino)
-    
+    settings = get_settings()
+    services = get_services(settings)
+    io_loop = IOLoop.current()
+
     try:
-
-        # Start monitoring sensors
-        arduino.start(
-            toggle_callback=status.toggle
+        services.telemetry_websocket.start()
+        services.arduino_controller.start(
+            toggle_callback=services.telemetry_service.handle_sensor_reading
         )
-
-        # Set initial LED color
-        arduino.set_led_color(LedColors.BLUE)
-
-        # Main application loop
-        while True:
-            time.sleep(1)
-
-    except KeyboardInterrupt:
-        print("Stopping application...")
-
+        io_loop.start()
     finally:
-        arduino.set_led_color(LedColors.OFF)
-        arduino.close()
+        services.arduino_controller.set_led_color(LedColors.OFF)
+        services.arduino_controller.close()
+        services.telemetry_websocket.stop()
