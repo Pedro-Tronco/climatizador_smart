@@ -1,0 +1,9 @@
+:4000 {
+	handle /ws {
+		reverse_proxy app:7000
+	}
+
+	handle /api/* {
+		reverse_proxy app:8000
+	}
+}

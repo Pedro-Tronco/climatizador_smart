@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    devices:
+      - "${ARDUINO_PORT}:${ARDUINO_PORT}"
+    expose:
+      - "7000"
+      - "8000"
+    networks:
+      - server
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - app
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - server
+      - ingress
+    restart: unless-stopped
+
+networks:
+  server:
+    internal: true
+  ingress:

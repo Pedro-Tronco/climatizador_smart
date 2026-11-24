@@ -8,11 +8,14 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.165.0",
     "pydantic>=2.14.3",
     "pydantic-settings>=2.16.3",
     "pyserial>=3.5",
+    "sqlmodel>=0.0.50",
     "tornado>=6.6.1",
     "typing-extensions>=4.16.0",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]

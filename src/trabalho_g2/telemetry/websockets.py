@@ -39,7 +39,7 @@ class TelemetryWebsocket:
 
         return TelemetryWebSocketHandler
 
-    def start(self, port: int = 8888) -> None:
+    def start(self, port: int = 7000) -> None:
         if self._server is not None:
             raise RuntimeError("Telemetry websocket is already running")
 
