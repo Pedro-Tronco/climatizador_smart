@@ -14,10 +14,19 @@ services:
       - server
     restart: unless-stopped
 
+  frontend:
+    build: ./frontend
+    expose:
+      - "80"
+    networks:
+      - server
+    restart: unless-stopped
+
   caddy:
     image: caddy:2-alpine
     depends_on:
       - app
+      - frontend
     ports:
       - "4000:4000"
     volumes:

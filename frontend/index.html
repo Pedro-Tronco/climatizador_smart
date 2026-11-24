@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#09090b">
+  <title>Climatizador Smart — Telemetria Industrial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="1.5" width="17" height="17" rx="4" stroke="currentColor" stroke-opacity="0.28" stroke-width="1.25"/>
+            <circle cx="7" cy="10" r="2.2" fill="currentColor"/>
+            <circle cx="13" cy="10" r="2.2" stroke="currentColor" stroke-width="1.4"/>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <h1 class="brand-title">Climatizador Smart</h1>
+          <p class="brand-subtitle">TELEMETRIA &amp; OCORRÊNCIAS</p>
+        </div>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Seções do painel">
+        <button
+          type="button"
+          class="tab-btn is-active"
+          role="tab"
+          id="tab-btn-tempo-real"
+          data-tab="tempo-real"
+          aria-selected="true"
+          aria-controls="tab-tempo-real"
+        >
+          Tempo Real
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          role="tab"
+          id="tab-btn-historico"
+          data-tab="historico"
+          aria-selected="false"
+          aria-controls="tab-historico"
+        >
+          Histórico
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          role="tab"
+          id="tab-btn-resumo"
+          data-tab="resumo"
+          aria-selected="false"
+          aria-controls="tab-resumo"
+        >
+          Resumo
+        </button>
+      </nav>
+
+      <div id="ws-indicator" class="ws-pill" data-ws="connecting" aria-live="polite">
+        <span id="ws-dot" class="ws-dot" aria-hidden="true"></span>
+        <span id="ws-label">Conectando...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ABA 1: TEMPO REAL -->
+    <section
+      id="tab-tempo-real"
+      class="tab-panel is-active"
+      role="tabpanel"
+      aria-labelledby="tab-btn-tempo-real"
+    >
+      <div class="live-grid">
+        <article id="live-status-card" class="card status-hero" data-status="INITIALIZING">
+          <div class="status-hero-top">
+            <div class="eyebrow-group">
+              <span class="eyebrow">Estado Atual do Sistema</span>
+              <span class="eyebrow-divider" aria-hidden="true">/</span>
+              <span class="eyebrow-channel">CANAL WS</span>
+            </div>
+            <button type="button" id="btn-fullscreen" class="btn btn-ghost" title="Alternar tela cheia">
+              Tela Cheia
+            </button>
+          </div>
+
+          <div class="status-display">
+            <div class="led-assembly" aria-hidden="true">
+              <div class="led-bezel">
+                <div id="live-led" class="led-orb"></div>
+              </div>
+              <span class="led-ring"></span>
+            </div>
+
+            <div class="status-text">
+              <div class="status-heading-row">
+                <h2 id="live-status-label" class="status-label">Inicializando</h2>
+                <span id="live-status-code" class="status-badge">INITIALIZING</span>
+              </div>
+              <p id="live-status-desc" class="status-desc">
+                Aguardando primeira leitura dos sensores do Arduino.
+              </p>
+            </div>
+          </div>
+
+          <dl class="status-meta">
+            <div class="meta-item">
+              <dt>Última atualização</dt>
+              <dd id="live-last-updated">—</dd>
+            </div>
+            <div class="meta-item">
+              <dt>Tempo decorrido</dt>
+              <dd id="live-elapsed">—</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="card feed-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Eventos Recentes</h2>
+              <p class="card-hint">Últimas 10 ocorrências</p>
+            </div>
+            <span class="card-tag">LIVE</span>
+          </div>
+          <ul id="live-feed-list" class="feed-list"></ul>
+          <p id="live-feed-empty" class="empty-msg">Nenhuma ocorrência registrada até o momento.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ABA 2: HISTÓRICO -->
+    <section
+      id="tab-historico"
+      class="tab-panel"
+      role="tabpanel"
+      aria-labelledby="tab-btn-historico"
+      hidden
+    >
+      <article class="card history-card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Histórico de Ocorrências</h2>
+            <p id="history-count" class="card-hint">Carregando registros...</p>
+          </div>
+          <div class="history-actions">
+            <button type="button" id="btn-refresh" class="btn btn-secondary">Atualizar</button>
+            <button type="button" id="btn-export-csv" class="btn btn-primary">Exportar CSV</button>
+          </div>
+        </div>
+
+        <form id="history-filter-form" class="filter-bar">
+          <label class="field">
+            <span class="field-label">Status</span>
+            <select id="filter-status" class="input">
+              <option value="ALL">Todos</option>
+              <option value="OK">OK (Verde)</option>
+              <option value="WARNING">WARNING (Azul)</option>
+              <option value="DISABLED">DISABLED (Vermelho)</option>
+              <option value="INITIALIZING">INITIALIZING (Branco)</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">A partir de</span>
+            <input id="filter-timestamp" type="datetime-local" step="1" class="input">
+          </label>
+
+          <div class="filter-buttons">
+            <button type="submit" id="btn-filter" class="btn btn-primary">Filtrar</button>
+            <button type="button" id="btn-clear" class="btn btn-ghost">Limpar</button>
+          </div>
+        </form>
+
+        <p id="history-error" class="alert-error" hidden></p>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data / Hora</th>
+                <th>Status</th>
+                <th>Descrição</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+        <p id="history-empty" class="empty-msg" hidden>Nenhuma ocorrência encontrada para os filtros aplicados.</p>
+      </article>
+    </section>
+
+    <!-- ABA 3: RESUMO -->
+    <section
+      id="tab-resumo"
+      class="tab-panel"
+      role="tabpanel"
+      aria-labelledby="tab-btn-resumo"
+      hidden
+    >
+      <div class="kpi-grid">
+        <article class="card kpi-card kpi-card--primary">
+          <span class="kpi-label">Total de Ocorrências</span>
+          <strong id="kpi-total" class="kpi-value">0</strong>
+          <span class="kpi-sub">Registros carregados</span>
+        </article>
+
+        <article class="card kpi-card" data-status="OK">
+          <span class="kpi-label">OK · Verde</span>
+          <strong id="kpi-ok-count" class="kpi-value">0</strong>
+          <span id="kpi-ok-pct" class="kpi-sub">0%</span>
+        </article>
+
+        <article class="card kpi-card" data-status="WARNING">
+          <span class="kpi-label">WARNING · Azul</span>
+          <strong id="kpi-warning-count" class="kpi-value">0</strong>
+          <span id="kpi-warning-pct" class="kpi-sub">0%</span>
+        </article>
+
+        <article class="card kpi-card" data-status="DISABLED">
+          <span class="kpi-label">DISABLED · Vermelho</span>
+          <strong id="kpi-disabled-count" class="kpi-value">0</strong>
+          <span id="kpi-disabled-pct" class="kpi-sub">0%</span>
+        </article>
+      </div>
+
+      <div class="summary-grid">
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Distribuição por Estado</h2>
+              <p class="card-hint">Proporção acumulada das leituras</p>
+            </div>
+          </div>
+          <div class="bars-list">
+            <div class="bar-row">
+              <div class="bar-header">
+                <span class="bar-title">OK — Sensores 1 e 2 ativos</span>
+                <span id="bar-ok-label" class="bar-metric">0 (0%)</span>
+              </div>
+              <div class="bar-track">
+                <div id="bar-ok" class="bar-fill bar-ok"></div>
+              </div>
+            </div>
+
+            <div class="bar-row">
+              <div class="bar-header">
+                <span class="bar-title">WARNING — Apenas 1 sensor ativo</span>
+                <span id="bar-warning-label" class="bar-metric">0 (0%)</span>
+              </div>
+              <div class="bar-track">
+                <div id="bar-warning" class="bar-fill bar-warning"></div>
+              </div>
+            </div>
+
+            <div class="bar-row">
+              <div class="bar-header">
+                <span class="bar-title">DISABLED — Sensores inativos</span>
+                <span id="bar-disabled-label" class="bar-metric">0 (0%)</span>
+              </div>
+              <div class="bar-track">
+                <div id="bar-disabled" class="bar-fill bar-disabled"></div>
+              </div>
+            </div>
+
+            <div class="bar-row">
+              <div class="bar-header">
+                <span class="bar-title">INITIALIZING — Inicialização</span>
+                <span id="bar-initializing-label" class="bar-metric">0 (0%)</span>
+              </div>
+              <div class="bar-track">
+                <div id="bar-initializing" class="bar-fill bar-initializing"></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Linha do Tempo Recente</h2>
+              <p class="card-hint">Últimas 50 transições (mais antiga → mais nova)</p>
+            </div>
+          </div>
+          <div id="timeline-strip" class="timeline-strip" role="img" aria-label="Linha do tempo das últimas 50 ocorrências"></div>
+          <p id="timeline-empty" class="empty-msg">Sem dados suficientes para exibir a linha do tempo.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
