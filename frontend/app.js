@@ -38,6 +38,10 @@
     reconnectAttempts: 0,
     reconnectTimer: null,
     ws: null,
+    temperatures: {
+      normal_celcius: null,
+      eco_celcius: null,
+    },
   };
 
   const dom = {
@@ -90,6 +94,16 @@
 
     timelineStrip: document.getElementById("timeline-strip"),
     timelineEmpty: document.getElementById("timeline-empty"),
+
+    tempForm: document.getElementById("temp-form"),
+    tempNormal: document.getElementById("temp-normal"),
+    tempEco: document.getElementById("temp-eco"),
+    tempCurrentBadge: document.getElementById("temp-current-badge"),
+    tempError: document.getElementById("temp-error"),
+    tempSuccess: document.getElementById("temp-success"),
+    btnSaveTemps: document.getElementById("btn-save-temps"),
+    btnReloadTemps: document.getElementById("btn-reload-temps"),
+    tempStepButtons: Array.from(document.querySelectorAll(".temp-step-btn")),
   };
 
   function isValidStatus(status) {
@@ -336,6 +350,138 @@
     renderLivePanel();
     renderHistoryTable();
     renderSummary();
+    renderTemperatures();
+  }
+
+  /* ---- Temperatures ---- */
+
+  function showTempFeedback(type, message) {
+    dom.tempError.hidden = type !== "error" || !message;
+    dom.tempError.textContent = type === "error" ? message : "";
+    dom.tempSuccess.hidden = type !== "success" || !message;
+    dom.tempSuccess.textContent = type === "success" ? message : "";
+  }
+
+  function renderTemperatures() {
+    const { normal_celcius: normal, eco_celcius: eco } = state.temperatures;
+    if (Number.isInteger(normal) && Number.isInteger(eco)) {
+      dom.tempCurrentBadge.textContent = `NORMAL ${normal} °C · ECO ${eco} °C`;
+      if (document.activeElement !== dom.tempNormal) {
+        dom.tempNormal.value = String(normal);
+      }
+      if (document.activeElement !== dom.tempEco) {
+        dom.tempEco.value = String(eco);
+      }
+    } else {
+      dom.tempCurrentBadge.textContent = "NORMAL — °C · ECO — °C";
+    }
+  }
+
+  async function loadTemperatures() {
+    try {
+      showTempFeedback("", "");
+      const response = await fetch("/temps", {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error(`Erro HTTP ${response.status} ao buscar temperaturas`);
+      }
+      const data = await response.json();
+      if (
+        !data ||
+        !Number.isInteger(data.normal_celcius) ||
+        !Number.isInteger(data.eco_celcius)
+      ) {
+        throw new Error("Formato inválido retornado por /temps");
+      }
+      state.temperatures = {
+        normal_celcius: data.normal_celcius,
+        eco_celcius: data.eco_celcius,
+      };
+      renderTemperatures();
+    } catch (err) {
+      showTempFeedback(
+        "error",
+        err instanceof Error ? err.message : "Falha ao carregar temperaturas."
+      );
+    }
+  }
+
+  async function handleTempSubmit(event) {
+    event.preventDefault();
+    showTempFeedback("", "");
+
+    const normal = Number(dom.tempNormal.value);
+    const eco = Number(dom.tempEco.value);
+
+    if (!Number.isInteger(normal) || !Number.isInteger(eco)) {
+      showTempFeedback(
+        "error",
+        "Informe valores inteiros em °C para ambos os modos."
+      );
+      return;
+    }
+
+    if (normal < 10 || normal > 40 || eco < 10 || eco > 40) {
+      showTempFeedback(
+        "error",
+        "As temperaturas devem estar entre 10 °C e 40 °C."
+      );
+      return;
+    }
+
+    dom.btnSaveTemps.disabled = true;
+    const originalLabel = dom.btnSaveTemps.textContent;
+    dom.btnSaveTemps.textContent = "Salvando...";
+
+    try {
+      const response = await fetch("/temps", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          normal_celcius: normal,
+          eco_celcius: eco,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Erro HTTP ${response.status} ao salvar temperaturas`);
+      }
+      const data = await response.json();
+      state.temperatures = {
+        normal_celcius: data.normal_celcius,
+        eco_celcius: data.eco_celcius,
+      };
+      dom.tempNormal.value = String(data.normal_celcius);
+      dom.tempEco.value = String(data.eco_celcius);
+      renderTemperatures();
+      showTempFeedback(
+        "success",
+        `Temperaturas atualizadas: Normal ${data.normal_celcius} °C · Eco ${data.eco_celcius} °C`
+      );
+    } catch (err) {
+      showTempFeedback(
+        "error",
+        err instanceof Error ? err.message : "Falha ao salvar temperaturas."
+      );
+    } finally {
+      dom.btnSaveTemps.disabled = false;
+      dom.btnSaveTemps.textContent = originalLabel;
+    }
+  }
+
+  function stepTemperatureInput(targetId, delta) {
+    const input = document.getElementById(targetId);
+    if (!input) return;
+    const min = Number.parseInt(input.min || "10", 10);
+    const max = Number.parseInt(input.max || "40", 10);
+    const current = Number.parseInt(input.value, 10);
+    const base = Number.isNaN(current) ? 22 : current;
+    const next = Math.min(max, Math.max(min, base + delta));
+    input.value = String(next);
+    showTempFeedback("", "");
   }
 
   /* ---- REST API ---- */
@@ -600,6 +746,20 @@
     dom.btnExportCsv.addEventListener("click", exportHistoryCsv);
     dom.btnFullscreen.addEventListener("click", toggleFullscreen);
     document.addEventListener("fullscreenchange", updateFullscreenButton);
+
+    dom.tempForm.addEventListener("submit", handleTempSubmit);
+    dom.btnReloadTemps.addEventListener("click", () => {
+      void loadTemperatures();
+    });
+    for (const btn of dom.tempStepButtons) {
+      btn.addEventListener("click", () => {
+        const targetId = btn.dataset.tempTarget;
+        const delta = Number.parseInt(btn.dataset.step || "0", 10);
+        stepTemperatureInput(targetId, delta);
+      });
+    }
+    dom.tempNormal.addEventListener("input", () => showTempFeedback("", ""));
+    dom.tempEco.addEventListener("input", () => showTempFeedback("", ""));
   }
 
   function init() {
@@ -609,6 +769,7 @@
     renderAll();
 
     void loadInitialOccurrences();
+    void loadTemperatures();
     connectWebSocket();
 
     window.setInterval(() => {

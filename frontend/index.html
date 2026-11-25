@@ -135,6 +135,60 @@
           <p id="live-feed-empty" class="empty-msg">Nenhuma ocorrência registrada até o momento.</p>
         </article>
       </div>
+
+      <article class="card temp-card" aria-labelledby="temp-card-title">
+        <div class="card-header">
+          <div>
+            <h2 id="temp-card-title" class="card-title">Ajuste de Temperaturas</h2>
+            <p class="card-hint">Defina as temperaturas-alvo em °C para os modos Normal (OK) e Eco (WARNING)</p>
+          </div>
+          <span id="temp-current-badge" class="card-tag">NORMAL — °C · ECO — °C</span>
+        </div>
+
+        <p id="temp-error" class="alert-error" hidden></p>
+        <p id="temp-success" class="alert-success" hidden></p>
+
+        <form id="temp-form" class="temp-form">
+          <div class="temp-grid">
+            <div class="temp-control" data-status="OK">
+              <div class="temp-control-head">
+                <label for="temp-normal" class="field-label">Modo Normal (OK)</label>
+                <span class="status-badge" data-status="OK">OK</span>
+              </div>
+              <p class="temp-control-hint">Aplicada quando os dois sensores estão ativos.</p>
+              <div class="temp-input-group">
+                <button type="button" class="btn btn-secondary temp-step-btn" data-temp-target="temp-normal" data-step="-1" aria-label="Diminuir temperatura normal">−</button>
+                <div class="temp-input-wrap">
+                  <input id="temp-normal" name="normal_celcius" type="number" step="1" min="10" max="40" required class="input temp-input" placeholder="22">
+                  <span class="temp-unit" aria-hidden="true">°C</span>
+                </div>
+                <button type="button" class="btn btn-secondary temp-step-btn" data-temp-target="temp-normal" data-step="1" aria-label="Aumentar temperatura normal">+</button>
+              </div>
+            </div>
+
+            <div class="temp-control" data-status="WARNING">
+              <div class="temp-control-head">
+                <label for="temp-eco" class="field-label">Modo Eco (WARNING)</label>
+                <span class="status-badge" data-status="WARNING">WARNING</span>
+              </div>
+              <p class="temp-control-hint">Aplicada quando apenas um sensor está ativo.</p>
+              <div class="temp-input-group">
+                <button type="button" class="btn btn-secondary temp-step-btn" data-temp-target="temp-eco" data-step="-1" aria-label="Diminuir temperatura eco">−</button>
+                <div class="temp-input-wrap">
+                  <input id="temp-eco" name="eco_celcius" type="number" step="1" min="10" max="40" required class="input temp-input" placeholder="25">
+                  <span class="temp-unit" aria-hidden="true">°C</span>
+                </div>
+                <button type="button" class="btn btn-secondary temp-step-btn" data-temp-target="temp-eco" data-step="1" aria-label="Aumentar temperatura eco">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="temp-actions">
+            <button type="submit" id="btn-save-temps" class="btn btn-primary">Salvar Temperaturas</button>
+            <button type="button" id="btn-reload-temps" class="btn btn-ghost">Recarregar</button>
+          </div>
+        </form>
+      </article>
     </section>
 
     <!-- ABA 2: HISTÓRICO -->

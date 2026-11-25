@@ -13,25 +13,11 @@ class AirConditionerService:
         self._normal_temperature_celcius: int = 22
         self._eco_temperature_celcius: int = 25
         
-        self.change_status(SensorState.OK)
+        self._state = SensorState.OK
         
         
-    def adjust_temperatures(self, temperatures: Temperatures) -> Temperatures:    
-        self._normal_temperature_celcius = temperatures.normal_celcius
-        self._eco_temperature_celcius = temperatures.eco_celcius
-        
-        return self.get_current_temperatures()
-        
-        
-    def get_current_temperatures(self) -> Temperatures:
-        return Temperatures(
-            normal_celcius=self._normal_temperature_celcius,
-            eco_celcius=self._eco_temperature_celcius,
-        )
-        
-        
-    def change_status(self, state: SensorState) -> None:
-        match state:
+    def _update_state(self):
+        match self._state:
             case SensorState.OK:
                 self._ac_is_on = True
                 self._current_temperature = self._normal_temperature_celcius
@@ -45,9 +31,29 @@ class AirConditionerService:
                 
             case _:
                 pass
-            
         self._raspi_controller.write_lcd(
             f'Status: {"ON " if self._ac_is_on else "OFF"}'
             '     '
             f'Temp: {self._current_temperature} C'
         )
+    
+        
+    def adjust_temperatures(self, temperatures: Temperatures) -> Temperatures:    
+        self._normal_temperature_celcius = temperatures.normal_celcius
+        self._eco_temperature_celcius = temperatures.eco_celcius
+        
+        self._update_state()
+        return self.get_current_temperatures()
+        
+        
+    def get_current_temperatures(self) -> Temperatures:
+        return Temperatures(
+            normal_celcius=self._normal_temperature_celcius,
+            eco_celcius=self._eco_temperature_celcius,
+        )
+        
+        
+    def change_status(self, state: SensorState) -> None:
+        self._state = state
+            
+        self._update_state()
