@@ -24,6 +24,7 @@ async def _run() -> None:
 
     try:
         services.telemetry_controller.register_endpoints(app)
+        services.ac_controller.register_endpoints(app)
         services.telemetry_websocket.start()
         services.arduino_controller.start(
             toggle_callback=services.telemetry_service.handle_sensor_reading
@@ -36,4 +37,5 @@ async def _run() -> None:
     finally:
         services.arduino_controller.set_led_color(LedColors.OFF)
         services.arduino_controller.close()
+        services.raspi_controller.close()
         services.telemetry_websocket.stop()

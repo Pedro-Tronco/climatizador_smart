@@ -7,12 +7,14 @@ services:
       - ./data:/app/data
     devices:
       - "${ARDUINO_PORT}:${ARDUINO_PORT}"
+      - "/dev/gpiochip0:/dev/gpiochip0"
     expose:
       - "7000"
       - "8000"
     networks:
       - server
     restart: unless-stopped
+    privileged: true
 
   frontend:
     build: ./frontend

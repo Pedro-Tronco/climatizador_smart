@@ -8,6 +8,7 @@ O projeto é orquestrado via Docker Compose (`docker-compose.yaml`) com três se
 
 - **`app` (Backend Python):**
   - Lê os dados seriais do Arduino (`pyserial` via `ARDUINO_PORT`).
+  - Disponibiliza um controlador para escrever no LCD conectado aos pinos GPIO do Raspberry Pi (`RPLCD` e `rpi-lgpio`, compatível com a API `RPi.GPIO`).
   - Persiste ocorrências em banco SQLite em `./data` (`sqlmodel`).
   - Expõe a API REST com **FastAPI / Uvicorn** na porta `8000`.
   - Expõe o servidor WebSocket com **Tornado** na porta `7000`.
@@ -44,6 +45,8 @@ climatizador_smart/
     ├── arduino/
     │   ├── controller.py
     │   └── schemas.py
+    ├── raspi/
+    │   └── controller.py
     └── telemetry/
         ├── controller.py
         ├── protocols.py
@@ -63,6 +66,10 @@ TZ=America/Sao_Paulo
 ```
 
 > Ajuste `ARDUINO_PORT` conforme a porta serial onde o Arduino está conectado no host.
+
+O controlador `RaspiController` escreve no LCD 16x2 usando BCM: RS=26, E=19,
+D4=13, D5=6 e D7=12 (header físico 32). O serviço Docker precisa ter acesso a
+`/dev/gpiochip0`, já configurado no `docker-compose.yaml`.
 
 ## Como Executar
 

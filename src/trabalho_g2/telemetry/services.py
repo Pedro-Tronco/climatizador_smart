@@ -3,6 +3,8 @@ from typing import Optional, Sequence
 
 from ..arduino.schemas import SensorReading, LedColors
 from ..arduino.controller import ArduinoController
+from ..air_conditioner.services import AirConditionerService
+
 from ..settings import get_timezone
 
 from .websockets import TelemetryWebsocket
@@ -19,12 +21,14 @@ class TelemetryService:
     def __init__(
         self,
         arduino_controller: ArduinoController,
+        ac_service: AirConditionerService,
         telemetry_websocket: TelemetryWebsocket,
         telemetry_repository: TelemetryRepository,
     ) -> None:
         self._arduino_controller = arduino_controller
         self._telemetry_websocket = telemetry_websocket
         self._telemetry_repository = telemetry_repository
+        self._ac_service = ac_service
 
         self._state: SensorState = SensorState.INITIALIZING
 
@@ -47,6 +51,8 @@ class TelemetryService:
         ))
 
         self._arduino_controller.set_led_color(LedColors(self._state.value))
+        
+        self._ac_service.change_status(self._state)
 
         self._telemetry_websocket.send_message(StatusMessage(
             current_status=self._state.name
